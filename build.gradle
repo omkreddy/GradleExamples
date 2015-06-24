@@ -47,7 +47,7 @@ task determineCommitId {
     }
 }
 
-task createBuildReceipt(dependsOn: determineCommitId) {
+task createVersionInfo(dependsOn: determineCommitId) {
     ext.receiptFile = file("$buildDir/$buildVersionFileName")
     outputs.file receiptFile
     outputs.upToDateWhen { false }
@@ -62,5 +62,5 @@ task createBuildReceipt(dependsOn: determineCommitId) {
         receiptFile.setText(content, "ISO-8859-1")
     }
 }
-jar.dependsOn createBuildReceipt
+jar.dependsOn createVersionInfo
 
