@@ -1,0 +1,66 @@
+import org.gradle.internal.os.OperatingSystem
+
+apply plugin: 'java'
+
+ext {
+    buildVersionFileName = "version.properties"
+}
+
+sourceCompatibility = 1.6
+targetCompatibility = 1.6
+sourceSets.main.java.srcDirs = ["src"]
+
+version = '1.0'
+
+jar {
+ from("$buildDir") {
+        include "$buildVersionFileName"
+ }
+}
+
+task determineCommitId {
+    ext.commitId = "NA"
+
+    doLast {
+            if (file(".git/HEAD").exists()) {
+                def baos = new ByteArrayOutputStream()
+                def execResult = exec {
+                    ignoreExitValue = true
+                    commandLine = ["git", "log", "-1", "--format=%H"]
+                    if (OperatingSystem.current().windows) {
+                        commandLine = ["cmd", "/c"] + commandLine
+                    }
+
+                    standardOutput = baos
+                }
+                if (execResult.exitValue == 0) {
+                    commitId = new String(baos.toByteArray(), "utf8").trim()
+                } else {
+                    // Read commit id directly from filesystem
+                    def headRef = file(".git/HEAD").text
+                    headRef = headRef.replaceAll('ref: ', '').trim()
+                    commitId = file(".git/$headRef").text.trim()
+                }
+            } else {
+                commitId
+            }
+    }
+}
+
+task createBuildReceipt(dependsOn: determineCommitId) {
+    ext.receiptFile = file("$buildDir/$buildVersionFileName")
+    outputs.file receiptFile
+    outputs.upToDateWhen { false }
+    doLast {
+        def data = [
+                commitId: determineCommitId.commitId,
+                version: version,
+        ]
+
+        receiptFile.parentFile.mkdirs()
+        def content = data.entrySet().collect { "$it.key=$it.value" }.sort().join("\n")
+        receiptFile.setText(content, "ISO-8859-1")
+    }
+}
+jar.dependsOn createBuildReceipt
+
