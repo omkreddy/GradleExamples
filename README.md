@@ -1,2 +1,1 @@
-# GradleExamples
-A sample project with gradle build script examples
+sample gradle script to capture git hash/commitId, version during build time.
